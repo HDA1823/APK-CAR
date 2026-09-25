@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Caminho do Carro</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#17324d;text-align:center;overscroll-behavior:none}h1{margin:18px 0 8px;font-size:28px}.pergunta{font-size:22px;font-weight:bold;margin:8px}#alvo{color:#1677d2}.area{display:flex;justify-content:center;align-items:center;gap:28px;flex-wrap:wrap;margin:18px}.tab{position:relative;width:min(82vw,600px);height:min(82vw,600px);display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(6,1fr);border:4px solid #29465b;background:white;overflow:hidden}.cel{border:1px solid #9db0bd;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}.obj{font-size:35px;line-height:1}.obj small{display:block;font-size:11px;font-weight:bold}.car{width:72%;height:72%;object-fit:contain;position:relative;z-index:4}.car-vertical{width:72%;height:72%;object-fit:contain;position:relative;z-index:4}.rastro{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}.rastro line{stroke:#e53935;stroke-width:7;stroke-linecap:round}.ctrl{width:190px}.ctrl button{width:56px;height:56px;margin:4px;font-size:27px;border:2px solid #557083;border-radius:12px;background:#fff;cursor:pointer;touch-action:manipulation}.ctrl button:disabled{opacity:.45;cursor:not-allowed}.nova{padding:8px 18px;font-size:16px;border:1px solid #789;border-radius:9px;background:white;cursor:pointer}#msg{min-height:42px;font-size:20px;font-weight:bold;margin:8px}.ok{color:#17823b}.erro{color:#b3261e}@media(max-width:700px){.area{margin:8px}.pergunta{font-size:19px}.obj{font-size:27px}.ctrl{width:100%}.tab{width:92vw;height:92vw}}
+</style>
+</head>
+<body>
+<h1>🚗 Caminho do Carro</h1>
+<div class="pergunta">Qual é o caminho do carro até o <span id="alvo">...</span>?</div>
+<button class="nova" onclick="nova()">🔄 Nova atividade</button>
+<div class="area"><div id="tab" class="tab"><svg id="rastro" class="rastro" viewBox="0 0 600 600" preserveAspectRatio="none"></svg></div><div class="ctrl"><b>Controle o carro</b><br><button id="btnCima" onclick="mover(0,1)">⬆️</button><br><button id="btnEsq" onclick="mover(-1,0)">⬅️</button><button id="btnBaixo" onclick="mover(0,-1)">⬇️</button><button id="btnDir" onclick="mover(1,0)">➡️</button><p>Você também pode usar<br>as setas do teclado.</p></div></div>
+<div id="msg"></div>
+<script>
+let e=null;
+const locais=[['igreja','⛪'],['hospital','🏥'],['casa','🏠'],['parque','🌳'],['shopping','🛍️']];
+const imgs={direita:'carro_direita.svg',esquerda:'carro_esquerda.svg',cima:'carro_direita.svg',baixo:'carro_direita.svg'};
+function embaralhar(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function gerar(){const carro={x:Math.floor(Math.random()*6),y:0};const vagas=[];for(let y=1;y<6;y++)for(let x=0;x<6;x++)vagas.push({x,y});embaralhar(vagas);const objetos={};locais.forEach((l,i)=>{objetos[l[0]]={x:vagas[i].x,y:vagas[i].y,nome:l[0],icone:l[1]}});const alvo=locais[Math.floor(Math.random()*locais.length)][0];return {carro,objetos,alvo}}
+function direcao(dx,dy){if(dx>0)return'direita';if(dx<0)return'esquerda';if(dy>0)return'cima';return'baixo'}
+function ponto(pos){return{x:(pos.x+.5)*100,y:(5-pos.y+.5)*100}}
+function desenharRastro(){const svg=document.getElementById('rastro');svg.innerHTML='';if(!e||e.caminho.length<2)return;for(let i=0;i<e.caminho.length-1;i++){const a=ponto(e.caminho[i]),b=ponto(e.caminho[i+1]);const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);svg.appendChild(line)}}
+function desenhar(){const t=document.getElementById('tab');t.querySelectorAll('.cel').forEach(c=>c.remove());for(let y=5;y>=0;y--)for(let x=0;x<6;x++){const c=document.createElement('div');c.className='cel';const objeto=Object.values(e.objetos).find(o=>o.x===x&&o.y===y&&!(e.concluida&&o.nome===e.alvo));if(objeto)c.innerHTML='<div class="obj">'+objeto.icone+'<small>'+objeto.nome+'</small></div>';if(e.carro.x===x&&e.carro.y===y){const img=document.createElement('img');img.className=(e.direcao==='cima'||e.direcao==='baixo')?'car-vertical':'car';img.src=imgs[e.direcao];img.alt='carro';if(e.direcao==='cima')img.style.transform='rotate(-90deg)';if(e.direcao==='baixo')img.style.transform='rotate(90deg)';c.appendChild(img)}t.appendChild(c)}desenharRastro()}
+function mensagem(t,c){const m=document.getElementById('msg');m.textContent=t;m.className=c||''}
+function bloquear(){['btnCima','btnBaixo','btnEsq','btnDir'].forEach(id=>document.getElementById(id).disabled=true)}
+function liberar(){['btnCima','btnBaixo','btnEsq','btnDir'].forEach(id=>document.getElementById(id).disabled=false)}
+function mover(dx,dy){if(!e||e.concluida)return;const nx=e.carro.x+dx,ny=e.carro.y+dy;if(nx<0||nx>5||ny<0||ny>5)return;e.direcao=direcao(dx,dy);const obstaculo=Object.values(e.objetos).find(o=>o.x===nx&&o.y===ny);if(obstaculo&&obstaculo.nome!==e.alvo){mensagem('🚧 Esse quadrado tem um objeto. Escolha outro caminho!','erro');desenhar();return}e.carro.x=nx;e.carro.y=ny;e.caminho.push({x:nx,y:ny});const alvo=e.objetos[e.alvo];if(nx===alvo.x&&ny===alvo.y){e.concluida=true;mensagem('🎉 Muito bem! Você fez o caminho certo e chegou ao '+alvo.nome+'! Atividade concluída!','ok');bloquear()}else mensagem('');desenhar()}
+document.addEventListener('keydown',ev=>{const mapa={ArrowUp:[0,1],ArrowDown:[0,-1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(mapa[ev.key]){ev.preventDefault();if(!e||e.concluida)return;mover(mapa[ev.key][0],mapa[ev.key][1])}});
+function nova(){e=gerar();e.direcao='cima';e.caminho=[{x:e.carro.x,y:e.carro.y}];e.concluida=false;document.getElementById('alvo').textContent=e.objetos[e.alvo].nome;mensagem('');liberar();desenhar()}
+nova();
+</script>
+</body></html>
